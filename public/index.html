@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DueDaily — ระบบแจ้งเตือนงานประจำวัน</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#a9c6e8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DueDaily">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="frame">
+
+  <!-- ================= SIDEBAR ================= -->
+  <div class="side-wrap">
+    <div class="brand-badges">
+      <div class="badge-circle b1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2a2510" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <div class="badge-circle b2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3a1f2c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="sidebar-top">
+        <div class="word" id="brandWord">DueDaily</div>
+      </div>
+
+      <div class="nav-group-label">ทั่วไป</div>
+      <button class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-action="add-task">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        เพิ่มงานใหม่
+      </button>
+      <button class="nav-item" data-view="all-tasks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>
+        รายการงานทั้งหมด
+      </button>
+      <button class="nav-item" data-action="push-settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+        แจ้งเตือนบนมือถือ
+        <span class="nav-dot" id="pushNavDot" hidden></span>
+      </button>
+
+      <div class="nav-group-label">ข้อมูล</div>
+      <button class="nav-item" data-action="export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        ส่งออกข้อมูล (JSON)
+      </button>
+      <label class="nav-item" for="importFile" style="cursor:pointer;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+        นำเข้าข้อมูล
+      </label>
+      <input type="file" id="importFile" accept="application/json" hidden>
+      <button class="nav-item" data-action="reset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+        ล้างข้อมูลทั้งหมด
+      </button>
+
+      <div class="sidebar-bottom">
+        <div class="storage-note">ข้อมูลถูกบันทึกไว้บนเซิร์ฟเวอร์นี้ (data/tasks.json)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CONTENT ================= -->
+  <div class="content">
+
+    <div class="server-warning" id="serverWarningBanner" hidden>
+      ⚠️ เชื่อมต่อกับเซิร์ฟเวอร์ไม่ได้ ข้อมูลด้านล่างอาจไม่ถูกต้อง —
+      ตรวจสอบว่าได้เปิด Terminal แล้วรัน <code>npm start</code> ในโฟลเดอร์ duedaily-server ค้างไว้
+      และเข้าเว็บนี้ผ่าน <code>http://localhost:3000</code> (ไม่ใช่เปิดไฟล์ index.html ตรงๆ)
+      <button id="serverWarningRetry" type="button">ลองเชื่อมต่อใหม่</button>
+    </div>
+
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="searchInput" placeholder="ค้นหางาน หรือ หมวดหมู่...">
+        <div class="pill-row" id="filterPills">
+          <div class="pill active" data-filter="all">ทั้งหมด</div>
+          <div class="pill" data-filter="near">ใกล้ถึงกำหนด</div>
+          <div class="pill" data-filter="overdue">เลยกำหนด</div>
+          <div class="pill" data-filter="urgent">เร่งด่วน</div>
+        </div>
+      </div>
+      <div class="icon-group">
+        <button class="avatar-sm" id="userAvatar" title="แก้ไขโปรไฟล์">สช</button>
+        <div class="icon-btn" id="bellBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div class="dot" id="bellDot" hidden></div>
+          <div class="bell-panel" id="bellPanel"></div>
+        </div>
+        <div class="icon-btn" id="addBtnTop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DASHBOARD VIEW ============ -->
+    <div class="content-grid" id="view-dashboard">
+
+      <div class="left-col">
+
+        <div class="greeting-row">
+          <div class="greeting">
+            <h1 id="greetTitle">สวัสดี</h1>
+            <p id="greetSub">กำลังโหลดข้อมูล...</p>
+          </div>
+          <div class="show-all" data-view="all-tasks">ดูทั้งหมด ...</div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card c-yellow">
+            <div class="stat-title">งานทั้งหมด:</div>
+            <div class="bars" id="bars7day"></div>
+            <div class="bars-caption" id="barsCaption"><span></span><span></span></div>
+            <div class="stat-vals" style="margin-top:14px;">
+              <div class="v"><div class="n" id="statNear">0</div><div class="l">ใกล้ถึงกำหนด</div></div>
+              <div class="v"><div class="n" id="statOverdue">0</div><div class="l">เลยกำหนด</div></div>
+              <div class="v"><div class="n" id="statNormal">0</div><div class="l">ปกติ</div></div>
+            </div>
+          </div>
+
+          <div class="stat-card c-pink">
+            <div class="stat-title">งานที่เสร็จแล้ว (7 วันล่าสุด):</div>
+            <div class="corner-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#3a1f2c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 6h7v7"/></svg>
+            </div>
+            <div class="line-chart-wrap">
+              <svg viewBox="0 0 260 64" preserveAspectRatio="none" id="lineChart"></svg>
+            </div>
+            <div class="stat-vals" style="margin-top:8px;">
+              <div class="v"><div class="n" id="doneToday">0</div><div class="l">วันนี้</div></div>
+              <div class="v"><div class="n" id="doneAvg">0</div><div class="l">เฉลี่ย/วัน</div></div>
+              <div class="v"><div class="n" id="doneMax">0</div><div class="l">สูงสุด/วัน</div></div>
+            </div>
+          </div>
+
+          <div class="stat-card c-olive">
+            <div class="stat-title">แยกตามความสำคัญ:</div>
+            <div class="stat-vals">
+              <div class="v"><div class="n" id="prioNormal">0</div><div class="l">ปกติ</div></div>
+              <div class="v"><div class="n" id="prioUrgent">0</div><div class="l">ด่วน</div></div>
+              <div class="v"><div class="n" id="prioVUrgent">0</div><div class="l">ด่วนมาก</div></div>
+            </div>
+          </div>
+
+          <div class="stat-card c-blue">
+            <div class="stat-title">ต้องแจ้งเตือนวันนี้:</div>
+            <div class="star-deco">
+              <svg viewBox="0 0 64 64" fill="none" stroke="#1c2836" stroke-width="1.4"><path d="M32 2v18M32 44v18M2 32h18M44 32h18M11 11l13 13M40 40l13 13M53 11 40 24M24 40 11 53"/></svg>
+            </div>
+            <div class="stat-vals">
+              <div class="v"><div class="n" id="dueTodayTotal">0</div><div class="l">ทั้งหมดวันนี้</div></div>
+              <div class="v"><div class="n" id="dueTodayOverdue">0</div><div class="l">เลยกำหนด</div></div>
+              <div class="v"><div class="n" id="dueTodayNear">0</div><div class="l">ใกล้ถึงกำหนด</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lists-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>รายการงาน</h3>
+              <div class="chip-select" id="sortToggle">เรียงตามกำหนดส่ง</div>
+            </div>
+            <div class="task-list" id="taskList"></div>
+          </div>
+
+          <div class="detail-card" id="detailCard">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <div class="right-col">
+
+        <div class="cal-card">
+          <div class="cal-nav">
+            <div class="arrow" id="calPrev">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="cal-month" id="calMonthLabel">—</div>
+            <div class="arrow" id="calNext">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <div class="cal-grid" id="calGrid"></div>
+
+          <div class="cal-actions">
+            <button class="add-btn" id="calAddBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              เพิ่มงานใหม่
+            </button>
+            <div class="sq-btn" id="calTodayBtn" title="ไปวันนี้">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="15" r="2" fill="currentColor" stroke="none"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl-card">
+          <div class="panel-head">
+            <h3 id="tlTitle">วันนี้ — ไทม์ไลน์</h3>
+          </div>
+          <div class="tl-list" id="tlList"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============ ALL TASKS VIEW ============ -->
+    <div class="content-grid single" id="view-all-tasks" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>รายการงานทั้งหมด</h3>
+          <label class="show-done-toggle">
+            <input type="checkbox" id="showDoneToggle">
+            แสดงงานที่เสร็จแล้วด้วย
+          </label>
+        </div>
+        <table class="task-table">
+          <thead>
+            <tr>
+              <th>งาน</th>
+              <th>กำหนดส่ง</th>
+              <th>ความสำคัญ</th>
+              <th>สถานะ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="allTasksBody"></tbody>
+        </table>
+        <div class="empty-state" id="allTasksEmpty" hidden>ไม่พบงานที่ตรงกับเงื่อนไข</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= ADD/EDIT TASK MODAL ================= -->
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">เพิ่มงานใหม่</h3>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <form id="taskForm">
+      <input type="hidden" id="taskId">
+
+      <label class="field">
+        <span>ชื่องาน *</span>
+        <input type="text" id="fTitle" required placeholder="เช่น ส่งรายงานยอดขายประจำสัปดาห์">
+      </label>
+
+      <div class="field-row">
+        <label class="field">
+          <span>หมวดหมู่ / แผนก</span>
+          <input type="text" id="fCategory" placeholder="เช่น แผนกการตลาด">
+        </label>
+        <label class="field">
+          <span>ผู้รับผิดชอบ</span>
+          <input type="text" id="fAssignee" placeholder="เช่น สมชาย ใจดี">
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="field">
+          <span>วันที่กำหนดส่ง *</span>
+          <input type="date" id="fDate" required>
+        </label>
+        <label class="field">
+          <span>เวลา</span>
+          <input type="time" id="fTime" value="17:00">
+        </label>
+      </div>
+
+      <label class="field">
+        <span>ระดับความสำคัญ</span>
+        <select id="fPriority">
+          <option value="normal">ปกติ</option>
+          <option value="urgent">ด่วน</option>
+          <option value="very_urgent">ด่วนมาก</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>รายละเอียด / บันทึก</span>
+        <textarea id="fNotes" rows="3" placeholder="รายละเอียดเพิ่มเติมของงานนี้..."></textarea>
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="modalCancel">ยกเลิก</button>
+        <button type="submit" class="btn-primary">บันทึกงาน</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= PROFILE / SETTINGS MODAL ================= -->
+<div class="modal-backdrop" id="profileModalBackdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>แก้ไขโปรไฟล์</h3>
+      <button class="modal-close" id="profileModalClose">✕</button>
+    </div>
+    <form id="profileForm">
+      <label class="field">
+        <span>ชื่อผู้ใช้ (แสดงในคำทักทายและวงกลมอวตาร์)</span>
+        <input type="text" id="pDisplayName" placeholder="เช่น สมชาย ใจดี">
+      </label>
+
+      <label class="field">
+        <span>ชื่อระบบ (แสดงในแถบด้านซ้ายและชื่อแท็บ)</span>
+        <input type="text" id="pAppName" placeholder="เช่น DueDaily">
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="profileModalCancel">ยกเลิก</button>
+        <button type="submit" class="btn-primary">บันทึก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= PUSH NOTIFICATION SETTINGS MODAL ================= -->
+<div class="modal-backdrop" id="pushModalBackdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>แจ้งเตือนบนมือถือ (Push Notification)</h3>
+      <button class="modal-close" id="pushModalClose">✕</button>
+    </div>
+    <div class="push-panel">
+      <div class="push-status" id="pushStatusLine">กำลังตรวจสอบสถานะ...</div>
+
+      <div class="push-actions">
+        <button type="button" class="btn-primary" id="pushEnableBtn">เปิดการแจ้งเตือน</button>
+        <button type="button" class="btn-ghost" id="pushDisableBtn" hidden>ปิดการแจ้งเตือนบนเครื่องนี้</button>
+        <button type="button" class="btn-ghost" id="pushTestBtn" hidden>ส่งการแจ้งเตือนทดสอบ</button>
+      </div>
+
+      <div class="push-ios-note">
+        <h4>สำหรับ iPhone (iOS 16.4 ขึ้นไป)</h4>
+        <ol>
+          <li>เปิดเว็บนี้ด้วย <b>Safari</b> เท่านั้น (Chrome บน iOS ใช้ไม่ได้)</li>
+          <li>แตะปุ่ม แชร์ (ไอคอนสี่เหลี่ยมมีลูกศรชี้ขึ้น) แล้วเลือก <b>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</b></li>
+          <li>เปิดแอปจาก <b>ไอคอนบนหน้าจอโฮม</b> ที่เพิ่งเพิ่ม (ไม่ใช่จาก Safari โดยตรง)</li>
+          <li>กลับมาที่เมนูนี้แล้วกด "เปิดการแจ้งเตือน" อีกครั้ง — ระบบจะขอสิทธิ์แจ้งเตือน</li>
+        </ol>
+        <p>หากเปิดจากแท็บ Safari ปกติ (ยังไม่ได้เพิ่มไปหน้าจอโฮม) iOS จะไม่อนุญาตให้ขอสิทธิ์แจ้งเตือน ปุ่มด้านบนจะแจ้งเตือนขั้นตอนให้อีกครั้ง</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
