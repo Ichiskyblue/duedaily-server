@@ -373,6 +373,84 @@ button{font-family:inherit;}
   .field-row{grid-template-columns:1fr;}
 }
 
+/* ---------------- Mobile bottom tab bar (hidden on desktop) ---------------- */
+.tabbar{display:none;}
+.tab-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;
+  width:60px;padding:5px 4px;border:none;background:transparent;color:var(--muted);
+  font-family:inherit;font-size:9.5px;font-weight:700;cursor:pointer;position:relative;line-height:1.2;
+}
+.tab-item svg{width:19px;height:19px;}
+.tab-item.active{color:var(--blue-ink);}
+.tab-item .nav-dot{position:absolute;top:2px;right:12px;margin-left:0;}
+.tab-fab{
+  margin-top:-24px;width:50px;height:50px;border-radius:50%;flex-shrink:0;
+  background:var(--ink);color:#fff;border:4px solid var(--frame-bg);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 8px 18px rgba(0,0,0,.25);
+}
+.tab-fab svg{width:20px;height:20px;}
+
+/* ---------------- "More" bottom-sheet menu ---------------- */
+.more-menu{display:flex;flex-direction:column;gap:3px;}
+.more-item{
+  display:flex;align-items:center;gap:12px;width:100%;padding:13px 10px;border-radius:12px;
+  font-size:13.5px;font-weight:600;color:var(--ink);background:transparent;border:none;
+  text-align:left;cursor:pointer;font-family:inherit;
+}
+.more-item svg{width:18px;height:18px;color:var(--ink-soft);flex-shrink:0;}
+.more-item:hover{background:#F5F1E6;}
+.more-item.danger{color:var(--coral);}
+.more-item.danger svg{color:var(--coral);}
+
+@media (max-width:680px){
+  body{padding:10px;}
+  .frame{border-radius:22px;padding:14px;}
+  .content{padding-bottom:calc(78px + env(safe-area-inset-bottom));}
+
+  /* Sidebar replaced by the bottom tab bar */
+  .side-wrap{display:none;}
+  .tabbar{
+    display:flex;align-items:flex-start;justify-content:space-around;
+    position:fixed;left:0;right:0;bottom:0;z-index:50;
+    background:var(--white);border-top:1px solid var(--card-line);
+    padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  }
+
+  /* Topbar: let search take full width, filter pills scroll horizontally */
+  .topbar{flex-wrap:wrap;}
+  .search{width:100%;order:1;}
+  .search input{width:100%;}
+  .icon-group{order:0;margin-left:auto;}
+  .pill-row{width:100%;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;}
+  .pill-row::-webkit-scrollbar{display:none;}
+
+  /* Stat cards: horizontal scroll carousel instead of a wrapping grid */
+  .stat-grid{
+    display:flex;flex-wrap:nowrap;overflow-x:auto;gap:10px;
+    padding-bottom:4px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  }
+  .stat-grid::-webkit-scrollbar{display:none;}
+  .stat-card{flex:0 0 158px;scroll-snap-align:start;grid-column:unset !important;}
+
+  /* Modals become bottom sheets */
+  .modal-backdrop{align-items:flex-end;padding:0;}
+  .modal{
+    width:100%;max-width:100%;border-radius:22px 22px 0 0;
+    max-height:85vh;padding:14px 18px calc(20px + env(safe-area-inset-bottom));
+  }
+  .modal::before{content:"";display:block;width:36px;height:4px;border-radius:3px;background:#e4dfd0;margin:0 auto 14px;}
+
+  /* Larger one-tap "mark done" targets, in place of a swipe gesture */
+  .row-done-btn{width:34px;height:34px;}
+  .row-done-btn svg{width:16px;height:16px;}
+  .tt-actions button{width:34px;height:34px;}
+
+  /* All-tasks table: scroll sideways instead of squeezing/wrapping columns */
+  #view-all-tasks .panel{overflow-x:auto;}
+  .task-table{min-width:560px;}
+}
+
 /* ---------------- Push notification settings ---------------- */
 .nav-dot{
   width:8px;height:8px;border-radius:50%;background:var(--coral);margin-left:auto;flex-shrink:0;
