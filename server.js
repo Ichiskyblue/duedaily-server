@@ -5,7 +5,7 @@ const express = require('express');
 const store = require('./lib/store');
 const { newTask, applyTaskUpdate, decideNotifications, notificationPayloadFor } = require('./lib/taskLogic');
 const { initPush, sendToAll } = require('./lib/push');
-const { seedTasks } = require('./lib/seed');
+const { seedTasks, seedChecklistItems } = require('./lib/seed');
 
 const PORT = process.env.PORT || 3000;
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -18,6 +18,10 @@ const vapidKeys = initPush({ contactEmail: CONTACT_EMAIL });
 if (!require('fs').existsSync(require('path').join(store.DATA_DIR, 'tasks.json'))) {
   store.saveTasks(seedTasks());
   console.log('[server] First run detected — seeded demo tasks into data/tasks.json');
+}
+if (!require('fs').existsSync(require('path').join(store.DATA_DIR, 'checklist-items.json'))) {
+  store.saveChecklistItems(seedChecklistItems());
+  console.log('[server] First run detected — seeded default Incharge checklist items');
 }
 
 const app = express();
@@ -97,6 +101,106 @@ app.post('/api/tasks/:id/done', (req, res) => {
   tasks[idx] = applyTaskUpdate(tasks[idx], { done });
   store.saveTasks(tasks);
   res.json(tasks[idx]);
+});
+
+// ---------------------------------------------------------------------------
+// Incharge daily checklist
+// ---------------------------------------------------------------------------
+// Items are the customizable checklist template (add/edit/delete/reorder).
+// Status is which items were checked off on a given date (client-supplied
+// date string, e.g. "2026-09-04") — this keeps "today"/"which weekday" tied
+// to the user's own device clock/timezone rather than the server's.
+
+function uid() {
+  return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+const VALID_PERIODS = ['morning', 'midday', 'evening'];
+
+app.get('/api/checklist/items', (req, res) => {
+  res.json(store.loadChecklistItems());
+});
+
+app.post('/api/checklist/items', (req, res) => {
+  const body = req.body || {};
+  const text = (body.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'ต้องระบุชื่อรายการ' });
+  if (!VALID_PERIODS.includes(body.period)) return res.status(400).json({ error: 'ช่วงเวลาไม่ถูกต้อง' });
+  const frequency = body.frequency === 'custom' ? 'custom' : 'daily';
+  const days = frequency === 'custom' && Array.isArray(body.days)
+    ? body.days.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
+    : [];
+
+  const items = store.loadChecklistItems();
+  const newItem = {
+    id: uid(),
+    text,
+    period: body.period,
+    frequency,
+    days,
+    createdAt: new Date().toISOString(),
+  };
+  items.push(newItem);
+  store.saveChecklistItems(items);
+  res.status(201).json(newItem);
+});
+
+app.put('/api/checklist/items/:id', (req, res) => {
+  const items = store.loadChecklistItems();
+  const idx = items.findIndex((it) => it.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'ไม่พบรายการนี้' });
+  const body = req.body || {};
+  const current = items[idx];
+  const text = body.text !== undefined ? String(body.text).trim() : current.text;
+  if (!text) return res.status(400).json({ error: 'ต้องระบุชื่อรายการ' });
+  const period = VALID_PERIODS.includes(body.period) ? body.period : current.period;
+  const frequency = body.frequency === 'custom' ? 'custom' : (body.frequency === 'daily' ? 'daily' : current.frequency);
+  const days = frequency === 'custom'
+    ? (Array.isArray(body.days) ? body.days.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6) : current.days)
+    : [];
+  items[idx] = { ...current, text, period, frequency, days };
+  store.saveChecklistItems(items);
+  res.json(items[idx]);
+});
+
+app.delete('/api/checklist/items/:id', (req, res) => {
+  const items = store.loadChecklistItems();
+  const next = items.filter((it) => it.id !== req.params.id);
+  if (next.length === items.length) return res.status(404).json({ error: 'ไม่พบรายการนี้' });
+  store.saveChecklistItems(next);
+  res.status(204).end();
+});
+
+app.post('/api/checklist/items/reorder', (req, res) => {
+  const { period, orderedIds } = req.body || {};
+  if (!VALID_PERIODS.includes(period) || !Array.isArray(orderedIds)) {
+    return res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง' });
+  }
+  const items = store.loadChecklistItems();
+  const inPeriod = items.filter((it) => it.period === period);
+  const others = items.filter((it) => it.period !== period);
+  const byId = new Map(inPeriod.map((it) => [it.id, it]));
+  const reordered = orderedIds.map((id) => byId.get(id)).filter(Boolean);
+  // Any items in this period not mentioned (shouldn't normally happen) keep their relative order at the end.
+  const missing = inPeriod.filter((it) => !orderedIds.includes(it.id));
+  store.saveChecklistItems([...others, ...reordered, ...missing]);
+  res.json({ ok: true });
+});
+
+app.get('/api/checklist/status', (req, res) => {
+  const date = req.query.date;
+  const all = store.loadChecklistStatus();
+  res.json((date && all[date]) || {});
+});
+
+app.post('/api/checklist/status', (req, res) => {
+  const { date, itemId, done } = req.body || {};
+  if (!date || !itemId) return res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง' });
+  const all = store.loadChecklistStatus();
+  if (!all[date]) all[date] = {};
+  all[date][itemId] = !!done;
+  store.saveChecklistStatus(all);
+  res.json({ ok: true });
 });
 
 // ---------------------------------------------------------------------------
