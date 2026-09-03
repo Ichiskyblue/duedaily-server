@@ -15,6 +15,9 @@
   var THAI_MONTHS_FULL = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
   var THAI_MONTHS_SHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
   var THAI_DOW = ["จ","อ","พ","พฤ","ศ","ส","อา"]; // Monday-first
+  var THAI_DOW_FULL = ["วันอาทิตย์","วันจันทร์","วันอังคาร","วันพุธ","วันพฤหัสบดี","วันศุกร์","วันเสาร์"]; // getDay()-indexed, 0=Sunday
+  var CL_PERIOD_LABEL = { morning: "ช่วงเช้า", midday: "ช่วงกลางวัน", evening: "ช่วงเย็น" };
+  var CL_PERIOD_ORDER = ["morning", "midday", "evening"];
 
   /* ---------------------------- Icons (SVG) ---------------------------- */
   var ICON = {
@@ -23,7 +26,15 @@
     normal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
     edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>',
-    undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>'
+    undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>'
+  };
+
+  var CL_PERIOD_ICON = {
+    morning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    midday: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>',
+    evening: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>'
   };
 
   /* ---------------------------- Date helpers ---------------------------- */
@@ -52,7 +63,12 @@
     searchQuery: "",
     pillFilter: "all",
     sortByPriority: false,
-    showDoneInTable: false
+    showDoneInTable: false,
+    checklistItems: [],
+    checklistStatus: {},
+    clAddPeriod: "morning",
+    clAddFrequency: "daily",
+    clAddDays: []
   };
 
   /* ---------------------------- API helpers ---------------------------- */
@@ -90,7 +106,32 @@
   }
   async function refreshAndRender() {
     await loadTasksFromServer();
+    await loadChecklistFromServer();
     renderAll();
+  }
+
+  /* ---------------------------- Incharge daily checklist: data ---------------------------- */
+  function todayDateKey(d) {
+    d = d || now();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function itemAppliesToday(item, dow) {
+    if (item.frequency !== "custom") return true;
+    return Array.isArray(item.days) && item.days.indexOf(dow) !== -1;
+  }
+  async function loadChecklistFromServer() {
+    try {
+      state.checklistItems = await apiGet("/api/checklist/items");
+      state.checklistStatus = await apiGet("/api/checklist/status?date=" + encodeURIComponent(todayDateKey()));
+    } catch (e) {
+      console.error(e);
+      state.checklistItems = state.checklistItems || [];
+      state.checklistStatus = state.checklistStatus || {};
+    }
+  }
+  function todaysChecklistItems() {
+    var dow = now().getDay();
+    return state.checklistItems.filter(function (it) { return itemAppliesToday(it, dow); });
   }
 
   /* ---------------------------- Profile (localStorage, per-device) ---------------------------- */
@@ -219,7 +260,171 @@
     renderCalendar();
     renderTimeline();
     renderBell();
+    renderInchargeCard();
     if (state.view === "all-tasks") renderAllTasksTable();
+    if (state.view === "checklist") renderChecklistView();
+  }
+
+  /* ---------------------------- Incharge daily checklist: render ---------------------------- */
+  function renderInchargeCard() {
+    var card = el("inchargeCard");
+    if (!card) return;
+    var items = todaysChecklistItems();
+    if (items.length === 0) { card.hidden = true; return; }
+    card.hidden = false;
+    var doneCount = items.filter(function (it) { return !!state.checklistStatus[it.id]; }).length;
+    var pct = Math.round((doneCount / items.length) * 100);
+    el("inchargeRing").style.setProperty("--pct", pct);
+    el("inchargeRingLabel").textContent = doneCount + "/" + items.length;
+    var d = now();
+    el("inchargeSub").textContent = THAI_DOW_FULL[d.getDay()] + " " + fmtDateShort(d) + " · เหลือ " + (items.length - doneCount) + " ข้อ";
+  }
+
+  function renderChecklistView() {
+    var dow = now().getDay();
+    var items = todaysChecklistItems();
+    var doneCount = items.filter(function (it) { return !!state.checklistStatus[it.id]; }).length;
+    var pct = items.length ? Math.round((doneCount / items.length) * 100) : 0;
+    var d = now();
+    el("clHeaderSub").textContent = THAI_DOW_FULL[d.getDay()] + " " + fmtDateShort(d) + " " + toBE(d.getFullYear()) + " · เสร็จแล้ว " + doneCount + " จาก " + items.length + " ข้อ";
+    el("clProgressFill").style.width = pct + "%";
+    el("clProgressLabel").textContent = pct + "% เสร็จแล้ว";
+
+    var groupsHtml = CL_PERIOD_ORDER.map(function (period) {
+      var periodItems = items.filter(function (it) { return it.period === period; });
+      if (periodItems.length === 0) return "";
+      var periodDone = periodItems.filter(function (it) { return !!state.checklistStatus[it.id]; }).length;
+      var rows = periodItems.map(function (it) {
+        var done = !!state.checklistStatus[it.id];
+        return (
+          '<div class="cl-item' + (done ? " done" : "") + '" data-toggle-id="' + it.id + '">' +
+          '<div class="cl-check">' + (done ? ICON.check : "") + "</div>" +
+          '<div class="body"><div class="t">' + esc(it.text) + "</div></div>" +
+          "</div>"
+        );
+      }).join("");
+      return (
+        '<div class="cl-group">' +
+        '<div class="cl-group-head"><div class="ic ' + period + '">' + CL_PERIOD_ICON[period] + "</div>" +
+        "<h3>" + CL_PERIOD_LABEL[period] + '</h3><div class="cnt">' + periodDone + "/" + periodItems.length + "</div></div>" +
+        rows +
+        "</div>"
+      );
+    }).join("");
+
+    el("clGroups").innerHTML = groupsHtml;
+    el("clEmpty").hidden = items.length !== 0;
+
+    el("clGroups").querySelectorAll("[data-toggle-id]").forEach(function (rowEl) {
+      rowEl.addEventListener("click", function () {
+        var id = rowEl.getAttribute("data-toggle-id");
+        var nowDone = !state.checklistStatus[id];
+        toggleChecklistStatus(id, nowDone);
+      });
+    });
+  }
+
+  async function toggleChecklistStatus(itemId, done) {
+    state.checklistStatus[itemId] = done; // optimistic
+    renderChecklistView();
+    renderInchargeCard();
+    try {
+      await apiSend("/api/checklist/status", "POST", { date: todayDateKey(), itemId: itemId, done: done });
+    } catch (e) {
+      console.error(e);
+      toast("บันทึกไม่สำเร็จ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    }
+  }
+
+  function renderChecklistManage() {
+    var groupsHtml = CL_PERIOD_ORDER.map(function (period) {
+      var periodItems = state.checklistItems.filter(function (it) { return it.period === period; });
+      var rows = periodItems.map(function (it) {
+        var note = it.frequency === "custom" && it.days.length
+          ? '<div class="cl-item-tag-note">เฉพาะ' + it.days.map(function (d) { return THAI_DOW_FULL[d].replace("วัน", ""); }).join(", ") + "</div>"
+          : "";
+        return (
+          '<div class="cl-item edit-row">' +
+          '<div class="body"><div class="t">' + esc(it.text) + "</div>" + note + "</div>" +
+          '<button type="button" class="trash" data-del-id="' + it.id + '">' + ICON.trash + "</button>" +
+          "</div>"
+        );
+      }).join("");
+      return (
+        '<div class="cl-group">' +
+        '<div class="cl-group-head"><div class="ic ' + period + '">' + CL_PERIOD_ICON[period] + "</div>" +
+        "<h3>" + CL_PERIOD_LABEL[period] + '</h3><div class="cnt">' + periodItems.length + " ข้อ</div></div>" +
+        rows +
+        '<button type="button" class="add-item-btn" data-add-period="' + period + '">' + ICON.plus + "เพิ่มรายการใน" + CL_PERIOD_LABEL[period] + "</button>" +
+        "</div>"
+      );
+    }).join("");
+    el("clManageGroups").innerHTML = groupsHtml;
+
+    el("clManageGroups").querySelectorAll("[data-del-id]").forEach(function (btn) {
+      btn.addEventListener("click", function () { deleteChecklistItem(btn.getAttribute("data-del-id")); });
+    });
+    el("clManageGroups").querySelectorAll("[data-add-period]").forEach(function (btn) {
+      btn.addEventListener("click", function () { openClAddModal(btn.getAttribute("data-add-period")); });
+    });
+  }
+
+  async function deleteChecklistItem(id) {
+    try {
+      await apiSend("/api/checklist/items/" + id, "DELETE");
+      state.checklistItems = state.checklistItems.filter(function (it) { return it.id !== id; });
+      renderChecklistManage();
+      renderChecklistView();
+      renderInchargeCard();
+      toast("ลบรายการแล้ว");
+    } catch (e) {
+      console.error(e);
+      toast("ลบไม่สำเร็จ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    }
+  }
+
+  function openClManageModal() {
+    renderChecklistManage();
+    el("clManageModalBackdrop").hidden = false;
+  }
+  function closeClManageModal() { el("clManageModalBackdrop").hidden = true; }
+
+  function openClAddModal(period) {
+    state.clAddPeriod = period || "morning";
+    state.clAddFrequency = "daily";
+    state.clAddDays = [];
+    el("clAddForm").reset();
+    el("clPeriodRow").querySelectorAll(".seg-opt").forEach(function (o) {
+      o.classList.toggle("sel", o.getAttribute("data-period") === state.clAddPeriod);
+    });
+    el("clFreqRow").querySelectorAll(".freq-opt").forEach(function (o) {
+      o.classList.toggle("sel", o.getAttribute("data-freq") === "daily");
+    });
+    el("clDayRow").hidden = true;
+    el("clDayRow").querySelectorAll(".day-opt").forEach(function (o) { o.classList.remove("sel"); });
+    el("clAddModalBackdrop").hidden = false;
+    el("clText").focus();
+  }
+  function closeClAddModal() { el("clAddModalBackdrop").hidden = true; }
+
+  async function handleClAddSubmit(e) {
+    e.preventDefault();
+    var text = el("clText").value.trim();
+    if (!text) return;
+    var payload = { text: text, period: state.clAddPeriod, frequency: state.clAddFrequency };
+    if (state.clAddFrequency === "custom") payload.days = state.clAddDays;
+    try {
+      var created = await apiSend("/api/checklist/items", "POST", payload);
+      state.checklistItems.push(created);
+      closeClAddModal();
+      renderChecklistManage();
+      renderChecklistView();
+      renderInchargeCard();
+      toast("เพิ่มรายการแล้ว");
+    } catch (err) {
+      console.error(err);
+      toast("เพิ่มรายการไม่สำเร็จ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    }
   }
 
   function renderGreeting() {
@@ -602,7 +807,9 @@
     });
     el("view-dashboard").hidden = view !== "dashboard";
     el("view-all-tasks").hidden = view !== "all-tasks";
+    el("view-checklist").hidden = view !== "checklist";
     if (view === "all-tasks") renderAllTasksTable();
+    if (view === "checklist") renderChecklistView();
   }
 
   /* ---------------------------- Task modal ---------------------------- */
@@ -903,6 +1110,7 @@
   async function init() {
     state.profile = loadProfile() || Object.assign({}, DEFAULT_PROFILE);
     await loadTasksFromServer();
+    await loadChecklistFromServer();
 
     // pick a sensible default selected task: most urgent active one
     var initial = sortTasks(activeTasks(), false)[0];
@@ -953,6 +1161,40 @@
     el("moreModalClose").addEventListener("click", closeMoreModal);
     el("moreModalBackdrop").addEventListener("click", function (e) { if (e.target === el("moreModalBackdrop")) closeMoreModal(); });
     el("moreProfileBtn").addEventListener("click", function () { closeMoreModal(); openProfileModal(); });
+    el("moreChecklistBtn").addEventListener("click", function () { closeMoreModal(); setView("checklist"); });
+
+    /* ---- Incharge daily checklist ---- */
+    el("inchargeGoBtn").addEventListener("click", function () { setView("checklist"); });
+    el("clManageBtn").addEventListener("click", openClManageModal);
+    el("clManageModalClose").addEventListener("click", closeClManageModal);
+    el("clManageModalBackdrop").addEventListener("click", function (e) { if (e.target === el("clManageModalBackdrop")) closeClManageModal(); });
+
+    el("clAddModalClose").addEventListener("click", closeClAddModal);
+    el("clAddCancel").addEventListener("click", closeClAddModal);
+    el("clAddModalBackdrop").addEventListener("click", function (e) { if (e.target === el("clAddModalBackdrop")) closeClAddModal(); });
+    el("clAddForm").addEventListener("submit", handleClAddSubmit);
+
+    el("clPeriodRow").querySelectorAll(".seg-opt").forEach(function (o) {
+      o.addEventListener("click", function () {
+        state.clAddPeriod = o.getAttribute("data-period");
+        el("clPeriodRow").querySelectorAll(".seg-opt").forEach(function (x) { x.classList.toggle("sel", x === o); });
+      });
+    });
+    el("clFreqRow").querySelectorAll(".freq-opt").forEach(function (o) {
+      o.addEventListener("click", function () {
+        state.clAddFrequency = o.getAttribute("data-freq");
+        el("clFreqRow").querySelectorAll(".freq-opt").forEach(function (x) { x.classList.toggle("sel", x === o); });
+        el("clDayRow").hidden = state.clAddFrequency !== "custom";
+      });
+    });
+    el("clDayRow").querySelectorAll(".day-opt").forEach(function (o) {
+      o.addEventListener("click", function () {
+        var day = parseInt(o.getAttribute("data-day"), 10);
+        var idx = state.clAddDays.indexOf(day);
+        if (idx === -1) { state.clAddDays.push(day); o.classList.add("sel"); }
+        else { state.clAddDays.splice(idx, 1); o.classList.remove("sel"); }
+      });
+    });
 
     el("searchInput").addEventListener("input", function (e) {
       state.searchQuery = e.target.value;
@@ -1016,6 +1258,8 @@
       if (e.key === "Escape" && !el("modalBackdrop").hidden) closeModal();
       if (e.key === "Escape" && !el("profileModalBackdrop").hidden) closeProfileModal();
       if (e.key === "Escape" && !el("pushModalBackdrop").hidden) closePushModal();
+      if (e.key === "Escape" && !el("clManageModalBackdrop").hidden) closeClManageModal();
+      if (e.key === "Escape" && !el("clAddModalBackdrop").hidden) closeClAddModal();
     });
 
     renderAll();
