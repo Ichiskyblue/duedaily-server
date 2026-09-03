@@ -641,6 +641,10 @@
     el("pDisplayName").focus();
   }
   function closeProfileModal() { el("profileModalBackdrop").hidden = true; }
+
+  /* ---------------------------- "More" menu (mobile) ---------------------------- */
+  function openMoreModal() { el("moreModalBackdrop").hidden = false; }
+  function closeMoreModal() { el("moreModalBackdrop").hidden = true; }
   function handleProfileSubmit(e) {
     e.preventDefault();
     var displayName = el("pDisplayName").value.trim();
@@ -792,14 +796,16 @@
     var enableBtn = el("pushEnableBtn");
     var disableBtn = el("pushDisableBtn");
     var testBtn = el("pushTestBtn");
-    var navDot = el("pushNavDot");
+    function setNavDots(hidden) {
+      document.querySelectorAll(".nav-dot").forEach(function (d) { d.hidden = hidden; });
+    }
     if (!line) return;
 
     if (!PUSH_SUPPORTED) {
       line.textContent = "เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือนแบบพุช";
       line.className = "push-status off";
       enableBtn.hidden = true; disableBtn.hidden = true; testBtn.hidden = true;
-      navDot.hidden = true;
+      setNavDots(true);
       return;
     }
 
@@ -811,17 +817,17 @@
       line.textContent = "เปิดใช้งานการแจ้งเตือนบนเครื่องนี้แล้ว ✓";
       line.className = "push-status";
       enableBtn.hidden = true; disableBtn.hidden = false; testBtn.hidden = false;
-      navDot.hidden = true;
+      setNavDots(true);
     } else if (permission === "denied") {
       line.textContent = "การแจ้งเตือนถูกปิดกั้นในตั้งค่า กรุณาเปิดสิทธิ์แจ้งเตือนให้เว็บนี้ในตั้งค่าเครื่อง/เบราว์เซอร์ก่อน";
       line.className = "push-status warn";
       enableBtn.hidden = false; disableBtn.hidden = true; testBtn.hidden = true;
-      navDot.hidden = false;
+      setNavDots(false);
     } else {
       line.textContent = "ยังไม่ได้เปิดการแจ้งเตือนบนเครื่องนี้";
       line.className = "push-status off";
       enableBtn.hidden = false; disableBtn.hidden = true; testBtn.hidden = true;
-      navDot.hidden = false;
+      setNavDots(false);
     }
   }
 
@@ -905,7 +911,9 @@
     document.querySelectorAll(".nav-item[data-view]").forEach(function (n) {
       n.addEventListener("click", function () { setView(n.getAttribute("data-view")); });
     });
-    document.querySelector('.nav-item[data-action="add-task"]').addEventListener("click", function () { openModal("add"); });
+    document.querySelectorAll('[data-action="add-task"]').forEach(function (b) {
+      b.addEventListener("click", function () { openModal("add"); });
+    });
     el("addBtnTop").addEventListener("click", function () { openModal("add"); });
     document.querySelector('.show-all[data-view="all-tasks"]').addEventListener("click", function () { setView("all-tasks"); });
 
@@ -915,7 +923,9 @@
     el("profileModalCancel").addEventListener("click", closeProfileModal);
     el("profileModalBackdrop").addEventListener("click", function (e) { if (e.target === el("profileModalBackdrop")) closeProfileModal(); });
 
-    document.querySelector('[data-action="push-settings"]').addEventListener("click", openPushModal);
+    document.querySelectorAll('[data-action="push-settings"]').forEach(function (b) {
+      b.addEventListener("click", openPushModal);
+    });
     el("pushModalClose").addEventListener("click", closePushModal);
     el("pushModalBackdrop").addEventListener("click", function (e) { if (e.target === el("pushModalBackdrop")) closePushModal(); });
     el("pushEnableBtn").addEventListener("click", enablePush);
@@ -925,12 +935,24 @@
     var retryBtn = el("serverWarningRetry");
     if (retryBtn) retryBtn.addEventListener("click", function () { refreshAndRender(); });
 
-    document.querySelector('[data-action="export"]').addEventListener("click", exportData);
+    document.querySelectorAll('[data-action="export"]').forEach(function (b) {
+      b.addEventListener("click", function () { closeMoreModal(); exportData(); });
+    });
     el("importFile").addEventListener("change", function (e) {
+      closeMoreModal();
       if (e.target.files && e.target.files[0]) importData(e.target.files[0]);
       e.target.value = "";
     });
-    document.querySelector('[data-action="reset"]').addEventListener("click", resetData);
+    document.querySelectorAll('[data-action="reset"]').forEach(function (b) {
+      b.addEventListener("click", function () { closeMoreModal(); resetData(); });
+    });
+
+    document.querySelectorAll('[data-action="more"]').forEach(function (b) {
+      b.addEventListener("click", openMoreModal);
+    });
+    el("moreModalClose").addEventListener("click", closeMoreModal);
+    el("moreModalBackdrop").addEventListener("click", function (e) { if (e.target === el("moreModalBackdrop")) closeMoreModal(); });
+    el("moreProfileBtn").addEventListener("click", function () { closeMoreModal(); openProfileModal(); });
 
     el("searchInput").addEventListener("input", function (e) {
       state.searchQuery = e.target.value;
