@@ -251,6 +251,30 @@
   </div>
 </div>
 
+<!-- ================= MOBILE BOTTOM TAB BAR ================= -->
+<nav class="tabbar">
+  <button class="tab-item nav-item active" data-view="dashboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    <span>หน้าหลัก</span>
+  </button>
+  <button class="tab-item nav-item" data-view="all-tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>
+    <span>รายการ</span>
+  </button>
+  <button class="tab-fab" data-action="add-task" aria-label="เพิ่มงานใหม่">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <button class="tab-item nav-item" data-action="push-settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+    <span>แจ้งเตือน</span>
+    <span class="nav-dot" id="pushNavDotMobile" hidden></span>
+  </button>
+  <button class="tab-item nav-item" data-action="more">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>
+    <span>เพิ่มเติม</span>
+  </button>
+</nav>
+
 <!-- ================= ADD/EDIT TASK MODAL ================= -->
 <div class="modal-backdrop" id="modalBackdrop" hidden>
   <div class="modal">
@@ -362,6 +386,34 @@
         </ol>
         <p>หากเปิดจากแท็บ Safari ปกติ (ยังไม่ได้เพิ่มไปหน้าจอโฮม) iOS จะไม่อนุญาตให้ขอสิทธิ์แจ้งเตือน ปุ่มด้านบนจะแจ้งเตือนขั้นตอนให้อีกครั้ง</p>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MORE MENU (MOBILE) BOTTOM SHEET ================= -->
+<div class="modal-backdrop" id="moreModalBackdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>เพิ่มเติม</h3>
+      <button class="modal-close" id="moreModalClose">✕</button>
+    </div>
+    <div class="more-menu">
+      <button type="button" class="more-item" id="moreProfileBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        แก้ไขโปรไฟล์
+      </button>
+      <button type="button" class="more-item" data-action="export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        ส่งออกข้อมูล (JSON)
+      </button>
+      <label class="more-item" for="importFile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+        นำเข้าข้อมูล
+      </label>
+      <button type="button" class="more-item danger" data-action="reset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+        ล้างข้อมูลทั้งหมด
+      </button>
     </div>
   </div>
 </div>
