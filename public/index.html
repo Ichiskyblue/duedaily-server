@@ -170,6 +170,15 @@
           </div>
         </div>
 
+        <div class="incharge-card" id="inchargeCard" hidden>
+          <div class="incharge-ring" id="inchargeRing"><span id="inchargeRingLabel">0/0</span></div>
+          <div class="incharge-body">
+            <div class="incharge-t1">เช็คลิสต์ Incharge วันนี้</div>
+            <div class="incharge-t2" id="inchargeSub">—</div>
+          </div>
+          <button type="button" class="incharge-go" id="inchargeGoBtn">เปิดดู ›</button>
+        </div>
+
         <div class="lists-grid">
           <div class="panel">
             <div class="panel-head">
@@ -246,6 +255,24 @@
         </table>
         <div class="empty-state" id="allTasksEmpty" hidden>ไม่พบงานที่ตรงกับเงื่อนไข</div>
       </div>
+    </div>
+
+    <!-- ============ INCHARGE CHECKLIST VIEW ============ -->
+    <div class="content-grid single" id="view-checklist" hidden>
+      <div class="cl-header">
+        <h1>เช็คลิสต์ Incharge ประจำวัน</h1>
+        <div class="sub" id="clHeaderSub">—</div>
+        <div class="cl-progress-track"><div class="cl-progress-fill" id="clProgressFill" style="width:0%;"></div></div>
+        <div class="cl-progress-label" id="clProgressLabel">0% เสร็จแล้ว</div>
+      </div>
+      <div class="cl-header-actions">
+        <button type="button" class="edit-link" id="clManageBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          แก้ไขรายการ
+        </button>
+      </div>
+      <div id="clGroups"></div>
+      <div class="empty-state" id="clEmpty" hidden>วันนี้ไม่มีรายการในเช็คลิสต์ — กด "แก้ไขรายการ" เพื่อเพิ่ม</div>
     </div>
 
   </div>
@@ -398,6 +425,10 @@
       <button class="modal-close" id="moreModalClose">✕</button>
     </div>
     <div class="more-menu">
+      <button type="button" class="more-item" id="moreChecklistBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        เช็คลิสต์ Incharge
+      </button>
       <button type="button" class="more-item" id="moreProfileBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
         แก้ไขโปรไฟล์
@@ -415,6 +446,64 @@
         ล้างข้อมูลทั้งหมด
       </button>
     </div>
+  </div>
+</div>
+
+<!-- ================= MANAGE CHECKLIST ITEMS MODAL ================= -->
+<div class="modal-backdrop" id="clManageModalBackdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>จัดการรายการเช็คลิสต์</h3>
+      <button class="modal-close" id="clManageModalClose">✕</button>
+    </div>
+    <div id="clManageGroups"></div>
+  </div>
+</div>
+
+<!-- ================= ADD CHECKLIST ITEM MODAL ================= -->
+<div class="modal-backdrop" id="clAddModalBackdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>เพิ่มรายการเช็คลิสต์</h3>
+      <button class="modal-close" id="clAddModalClose">✕</button>
+    </div>
+    <form id="clAddForm">
+      <label class="field">
+        <span>ชื่อรายการ *</span>
+        <input type="text" id="clText" required placeholder="เช่น ปิดล็อกตู้เซฟก่อนกลับ">
+      </label>
+
+      <div class="field">
+        <span>ช่วงเวลา</span>
+        <div class="seg-row" id="clPeriodRow">
+          <div class="seg-opt sel" data-period="morning">เช้า</div>
+          <div class="seg-opt" data-period="midday">กลางวัน</div>
+          <div class="seg-opt" data-period="evening">เย็น</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <span>ความถี่</span>
+        <div class="freq-row" id="clFreqRow">
+          <div class="freq-opt sel" data-freq="daily">ทุกวัน</div>
+          <div class="freq-opt" data-freq="custom">เฉพาะบางวัน</div>
+        </div>
+        <div class="day-row" id="clDayRow" hidden>
+          <div class="day-opt" data-day="1">จ</div>
+          <div class="day-opt" data-day="2">อ</div>
+          <div class="day-opt" data-day="3">พ</div>
+          <div class="day-opt" data-day="4">พฤ</div>
+          <div class="day-opt" data-day="5">ศ</div>
+          <div class="day-opt" data-day="6">ส</div>
+          <div class="day-opt" data-day="0">อา</div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="clAddCancel">ยกเลิก</button>
+        <button type="submit" class="btn-primary">เพิ่มรายการ</button>
+      </div>
+    </form>
   </div>
 </div>
 
